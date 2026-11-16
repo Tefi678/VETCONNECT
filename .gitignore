@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Credenciales
+.env
+
+# Java
+target/
+*.class
+*.iml
+
+# IntelliJ IDEA
+.idea/
+
+# Sistema operativo
+Thumbs.db
+.DS_Store
