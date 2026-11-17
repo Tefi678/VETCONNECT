@@ -1,4 +1,3 @@
-
 CREATE DATABASE IF NOT EXISTS vetconnect_db;
 
 USE vetconnect_db;
@@ -19,7 +18,6 @@ CREATE TABLE IF NOT EXISTS mascotas (
     especie VARCHAR(50) NOT NULL,
     raza VARCHAR(60),
     edad INT,
-    CONSTRAINT fk_mascota_propietario
-        FOREIGN KEY (id_propietario)
+    FOREIGN KEY (id_propietario)
         REFERENCES propietarios(id_propietario)
 );

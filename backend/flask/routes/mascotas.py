@@ -21,7 +21,7 @@ def listar_mascotas():
         conexion = obtener_conexion()
         cursor = conexion.cursor(dictionary=True)
 
-        cursor.execute("""
+        consulta = """
             SELECT
                 m.id_mascota,
                 m.nombre,
@@ -34,18 +34,23 @@ def listar_mascotas():
             FROM mascotas m
             INNER JOIN propietarios p
                 ON m.id_propietario = p.id_propietario
-        """)
+        """
 
-        mascotas = cursor.fetchall()
+        cursor.execute(consulta)
 
-        return jsonify(mascotas), 200
+        resultado = cursor.fetchall()
+
+        return jsonify(resultado), 200
 
     except mysql.connector.Error as error:
-        return jsonify({"error": str(error)}), 500
+        return jsonify({
+            "error": str(error)
+        }), 500
 
     finally:
         if cursor:
             cursor.close()
+
         if conexion and conexion.is_connected():
             conexion.close()
 
@@ -54,22 +59,35 @@ def listar_mascotas():
 @mascotas_bp.route("", methods=["POST"])
 def registrar_mascota():
 
-    datos = request.get_json(silent=True) or {}
+    datos = request.get_json(silent=True)
+
+    if not isinstance(datos, dict):
+        return jsonify({
+            "error": "Se requiere enviar un objeto JSON"
+        }), 400
 
     nombre = str(datos.get("nombre", "")).strip()
     especie = str(datos.get("especie", "")).strip()
 
     try:
         id_propietario = int(datos.get("id_propietario"))
-        edad = datos.get("edad")
-        edad = int(edad) if edad not in (None, "") else None
+
+        edad_recibida = datos.get("edad")
+        edad = (
+            int(edad_recibida)
+            if edad_recibida not in (None, "")
+            else None
+        )
+
+        if id_propietario <= 0 or (
+            edad is not None and edad < 0
+        ):
+            raise ValueError()
+
     except (TypeError, ValueError):
         return jsonify({
-            "error": "El propietario y la edad deben tener valores validos"
+            "error": "El ID del propietario o la edad son inválidos"
         }), 400
-
-    if id_propietario <= 0 or (edad is not None and edad < 0):
-        return jsonify({"error": "Los valores numericos no son validos"}), 400
 
     if not nombre or not especie:
         return jsonify({
@@ -100,9 +118,11 @@ def registrar_mascota():
         cursor.execute(consulta, valores)
         conexion.commit()
 
+        nuevo_id = cursor.lastrowid
+
         return jsonify({
             "mensaje": "Mascota registrada correctamente",
-            "id_mascota": cursor.lastrowid
+            "id_mascota": nuevo_id
         }), 201
 
     except mysql.connector.IntegrityError:
@@ -117,10 +137,13 @@ def registrar_mascota():
         if conexion:
             conexion.rollback()
 
-        return jsonify({"error": str(error)}), 500
+        return jsonify({
+            "error": str(error)
+        }), 500
 
     finally:
         if cursor:
             cursor.close()
+
         if conexion and conexion.is_connected():
             conexion.close()
